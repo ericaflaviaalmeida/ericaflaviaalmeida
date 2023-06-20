@@ -10,7 +10,6 @@ class ObstacleManager:
     def __init__(self):
         self.obstacles = []
         
-
     def update(self, game):
         self.image_obstacles = [Cactus(), Bird(),]
         if len(self.obstacles) == 0:           
