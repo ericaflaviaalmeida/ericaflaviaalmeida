@@ -7,8 +7,8 @@ from dino_runner.components.obstacles.obstacle import Obstacle
 class Cactus(Obstacle):
 
     CACTUS = [
-        (LARGE_CACTUS, 295),
-        (SMALL_CACTUS, 321), #y
+        (LARGE_CACTUS, 385),
+        (SMALL_CACTUS, 405), #y
     ]
 
     def __init__(self):

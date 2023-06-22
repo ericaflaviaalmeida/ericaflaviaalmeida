@@ -1,48 +1,52 @@
 import pygame
 
 from dino_runner.utils.constants import *
+from dino_runner.utils.text_utils import draw_message_component
 from dino_runner.components.dinosaur import Dinosaur
 from dino_runner.components.obstacles.obstacle_manager import ObstacleManager
 from dino_runner.components.powerups.power_up_manager import PowerUpManager
-from dino_runner.utils.text_utils import draw_message_component
-
-FONT_STYLE = 'freesansbold.ttf'
-
+from dino_runner.components.button import Button
 
 class Game:
     def __init__(self):
-        pygame.init()
-        pygame.display.set_caption(TITLE)
-        pygame.display.set_icon(ICON)
-        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        self.clock = pygame.time.Clock()
-        self.playing = False
-        self.running =  False
-        self.game_speed = 20
-        self.x_pos_bg = 0
-        self.y_pos_bg = 380
-        self.score = 0
-        self.death_count = 0
+            pygame.init()
+            pygame.display.set_caption(TITLE)
+            pygame.display.set_icon(ICON)
+            self.screen = pygame.display.set_mode((SCREEN_WIDTH,SCREEN_HEIGHT))
+            self.clock = pygame.time.Clock()
+            self.playing = False
+            self.running = False
+            #adc game pause e main
+            self.game_paused = False
+            self.menu_state = MAIN_STATE
+            self.time_is_up = False
+            self.last_score = 0 #PONTUAÇAO
+            self.score = 0
+            self.death_count = 0
+            self.game_speed = 10
+            self.x_pos_bg = 0
+            self.y_pos_bg = 0
 
-        self.player = Dinosaur()
-        self.obstacle_manager = ObstacleManager()
-        self.power_up_manager = PowerUpManager()
+            self.player = Dinosaur()
+            self.obstacle_manager = ObstacleManager()
+            self.power_up_manager = PowerUpManager()
 
     def execute(self):
         self.running = True
         while self.running:
             if not self.playing:
                 self.show_menu()
-
         pygame.display.quit()
         pygame.quit()
 
     def reset_score(self):
-        self.game_speed = 20
+        self.last_score = self.score #pontuação
+        self.game_speed = 10
         self.score = 0
 
     def run(self):
         # Game loop: events - update - draw
+        pygame.mixer.music.play(-1)
         self.playing = True
         self.obstacle_manager.reset_obstacles()
         self.power_up_manager.reset_power_ups()
@@ -52,33 +56,40 @@ class Game:
             self.events()
             self.update()
             self.draw()
-       
+ 
     def events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.playing = False
+                self.running = False
+                #elif para evento do pausa
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    self.game_paused = True
+                    self.my_menu()
 
     def update(self):
         user_input = pygame.key.get_pressed()
         self.player.update(user_input)
         self.obstacle_manager.update(self)
-        self.update_score()
         self.power_up_manager.update(self)
-
+        self.update_score()
+        
     def update_score(self):
         self.score += 1
         if self.score % 100 == 0:
-            self.game_speed += 5 
-        
+            self.game_speed += 3       
+
     def draw(self):
         self.clock.tick(FPS)
-        self.screen.fill((255, 255, 255))
+        #self.screen.fill((255, 255, 255)) # "#FFFFFF"
+        self.screen.blit(MENU_JOGO,(0,0))
         self.draw_background()
-        self.draw_score()
         self.player.draw(self.screen)
         self.obstacle_manager.draw(self.screen)
-        self.power_up_manager.draw(self.screen)
+        self.draw_score()
         self.draw_power_up_time()
+        self.power_up_manager.draw(self.screen)
         pygame.display.update()
         pygame.display.flip()
 
@@ -94,11 +105,21 @@ class Game:
     def draw_score(self):
            draw_message_component(
             f"score: {self.score}",
-            self.screen,              
-            pos_x_center=1000,
+            self.screen, 
+            font_color= BRANCO, 
+            font_size= 31,
+            pos_x_center=940,
             pos_y_center=50
         )
-           
+           draw_message_component(
+            f"last score: {self.last_score}",
+            self.screen, 
+             VERMELHO, 
+             28,
+            pos_x_center=940,
+            pos_y_center=80
+        )
+
     def draw_power_up_time(self):
         if self.player.has_power_up:
             time_to_show = round((self.player.power_up_time - pygame.time.get_ticks()) / 1000, 2)
@@ -106,13 +127,13 @@ class Game:
                 draw_message_component(
                     f"{self.player.type.capitalize()} ativado por {time_to_show} segundos",
                     self.screen,
+                    font_size= 18,
                     pos_x_center = 500,
-                    pos_y_center = 50
+                    pos_y_center = 40
                 )
             else:
                 self.player.has_power_up = False
                 self.player.type = DEFAULT_TYPE
-
 
     def handle_events_on_menu(self):
         for event in pygame.event.get():
@@ -123,28 +144,68 @@ class Game:
                 self.playing = False
                 self.running = False
 
+    def my_buttons(self):
+            self.resume_button = Button(340, 125, BUTTONS[0], 1)
+            self.quit_button = Button(410, 260, BUTTONS[1], 1)
+            self.principal = Button(300, 390, BUTTON_INICIAL,1)
+            self.retorna = Button(250, 150, GAME_OVER,1)
+    
+    def inicio(self):
+        self.my_buttons()
+        if self.principal.draw(self.screen):
+            self.playing = True
+            self.run()
+
+    def my_menu(self):
+        self.my_buttons()
+        draw_message_component("Jogo pausado",
+         self.screen, 
+         BRANCO,
+         35,
+         pos_x_center = 510,
+         pos_y_center = 190 )
+        
+        while self.game_paused:
+            if self.menu_state == MAIN_STATE:
+                if self.resume_button.draw(self.screen):
+                    self.game_paused = False
+                    
+                elif self.quit_button.draw(self.screen):
+                    self.playing = False
+                    pygame.quit()
+                    
+                self.handle_events_on_menu()
+                pygame.display.update()
+    
     def show_menu(self):
-        self.screen.fill((255, 255, 255))
+        self.screen.blit(MENU_JOGO,(0,0))
         half_screen_height = SCREEN_HEIGHT // 2
         half_screen_width = SCREEN_WIDTH // 2
-                
+        
         if self.death_count == 0:
-            draw_message_component("Pressione qualquer tecla  para iniciar", self.screen, pos_y_center=half_screen_height )
-        else:
-            self.screen.blit(ICON, (half_screen_width - 20, half_screen_height - 140))
-
-            draw_message_component("Pressione qualquer tecla  para reiniciar", self.screen, pos_y_center=half_screen_height )
+            self.inicio()
+            draw_message_component("Pressione qualquer tecla  para iniciar", self.screen, BRANCO,35 , pos_y_center=half_screen_height + 250)
             
+        else:
+            self.screen.blit(MENU_FINAL,(0,0))
+            
+            draw_message_component("Pressione qualquer tecla  para reiniciar", self.screen, pos_y_center=half_screen_height + 190)
+            draw_message_component("OPS, TENTE NOVAMENTE", self.screen, pos_y_center=half_screen_height + 150)         
+            draw_message_component(
+            f"Sua última pontuação: {self.last_score}", self.screen,
+            pos_y_center=half_screen_height - 200
+            )
             draw_message_component(
                 f"Sua pontuação: {self.score}", self.screen,
-                pos_y_center=half_screen_height - 190
+                pos_y_center=half_screen_height - 150
             )
-
             draw_message_component(
                 f"contagem de mortes: {self.death_count}",
                 self.screen,
-                pos_y_center=half_screen_height - 150
+                pos_y_center=half_screen_height - 100
             )
+            if self.retorna.draw(self.screen):
+                self.run()
 
         pygame.display.flip()
 

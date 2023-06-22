@@ -12,22 +12,28 @@ class ObstacleManager:
         
     def update(self, game):
         self.image_obstacles = [Cactus(), Bird(),]
-        if len(self.obstacles) == 0:           
-                self.obstacles.append(self.image_obstacles[random.randint(0,1)]) # aleatorio aparecer a imagem        
+        if len(self.obstacles) == 0:
+           
+                self.obstacles.append(self.image_obstacles[random.randint(0,1)])# aleatorio aparecer a imagem
         
         for obstacle in self.obstacles:
             obstacle.update(game.game_speed, self.obstacles)
             if game.player.dino_rect.colliderect(obstacle.rect):
-                if not game.player.has_power_up:
+                if not game.player.has_power_up or game.player.type == JUMP_TYPE:
                     pygame.time.delay(500)
                     game.playing = False
                     game.death_count += 1 
+                    DEATH_SOUND.play()
                     break
-                else:
-                     self.obstacles.remove(obstacle)
-
+                else:   
+                      if game.player.type == HAMMER_TYPE:
+                          self.obstacles.remove(obstacle)
+                                         
+                      if game.player.type == SHIELD_TYPE:
+                         continue
+                                                                                         
     def reset_obstacles(self):
-         self.obstacles = []                                                             
+        self.obstacles = []  
 
     def draw(self, screen):
         for obstacle in self.obstacles:
