@@ -184,7 +184,7 @@ class Game:
         
         if self.death_count == 0:
             self.inicio()
-            draw_message_component("Pressione qualquer tecla  para iniciar", self.screen, BRANCO,35 , pos_y_center=half_screen_height + 250)
+            draw_message_component("Pressione qualquer tecla  para iniciar ou clique com o mouse", self.screen, BRANCO,29 , pos_y_center=half_screen_height + 250)
             
         else:
             self.screen.blit(MENU_FINAL,(0,0))
